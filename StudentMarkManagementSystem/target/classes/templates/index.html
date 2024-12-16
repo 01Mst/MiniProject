@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" xmlns th="http://thymeleaf.com">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Mark Management System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+<div class="container mt-5">
+  <h1 class="text-center">Student Mark Management System</h1>
+
+  <!-- Form to Create a New Table -->
+  <div class="card mt-4">
+    <div class="card-header bg-primary text-white">Create a Record</div>
+    <div class="card-body">
+      <form id="tableForm">
+        <div class="mb-3">
+          <label for="tableName" class="form-label">Record Name</label>
+          <input type="text" class="form-control" id="tableName" placeholder="Enter record name" required>
+        </div>
+        <div class="mb-3">
+          <label for="columns" class="form-label" >Add Subjects</label>
+          <div id="columnsContainer">
+            <div class="input-group mb-2">
+              <input type="text" class="form-control" placeholder="Subject Name" required>
+              <button type="button" class="btn btn-danger" onclick="removeColumn(this)">Remove</button>
+            </div>
+          </div>
+          <button type="button" class="btn btn-secondary" onclick="addColumn()">Add Column</button>
+        </div>
+        <button type="submit" class="btn btn-success">Create Table</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Section to Display All Tables -->
+  <div id="tablesContainer" class="mt-4">
+    <!-- Tables will be dynamically added here -->
+  </div>
+</div>
+
+<script>
+  let tableCounter = 0;
+
+  // Function to add a column input
+  function addColumn() {
+    const container = document.getElementById('columnsContainer');
+    const inputGroup = document.createElement('div');
+    inputGroup.classList.add('input-group', 'mb-2');
+    inputGroup.innerHTML = `
+      <input type="text" class="form-control" placeholder="Subject Name" required>
+      <button type="button" class="btn btn-danger" onclick="removeColumn(this)">Remove</button>
+    `;
+    container.appendChild(inputGroup);
+  }
+
+  // Function to remove a column input
+  function removeColumn(button) {
+    const inputGroup = button.parentElement;
+    inputGroup.remove();
+  }
+
+  // Handle form submission to create a new table
+  document.getElementById('tableForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    // Get table name and columns
+    const tableName = document.getElementById('tableName').value;
+    const columnInputs = document.querySelectorAll('#columnsContainer input');
+
+    // Ensure student name and total columns are mandatory
+    const columns = ['Student Name', ...Array.from(columnInputs).map(input => input.value), 'Total'];
+
+    // Increment table counter
+    tableCounter++;
+
+    // Create the table HTML
+    const tableDiv = document.createElement('div');
+    tableDiv.classList.add('card', 'mt-4');
+    tableDiv.setAttribute('id', `table-${tableCounter}`);
+    tableDiv.innerHTML = `
+      <div class="card-header bg-secondary text-white">
+        <div class="d-flex justify-content-between align-items-center">
+          <span>${tableName}</span>
+          <div>
+            <button class="btn btn-warning btn-sm" onclick="toggleEditTable(${tableCounter}, this)">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="confirmDeleteTable(${tableCounter})">Delete</button>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <button class="btn btn-primary mb-3" onclick="addRow(${tableCounter})" disabled>Add Row</button>
+        <table class="table table-bordered">
+          <thead class="table-dark">
+            <tr>${columns.map(col => `<th>${col}</th>`).join('')}</tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    // Add the table to the container
+    document.getElementById('tablesContainer').appendChild(tableDiv);
+
+    // Reset the form
+    document.getElementById('tableForm').reset();
+    document.getElementById('columnsContainer').innerHTML = '';
+  });
+
+  // Function to toggle edit mode for a table
+  function toggleEditTable(tableId, button) {
+    const tableDiv = document.getElementById(`table-${tableId}`);
+    const addRowButton = tableDiv.querySelector('button[onclick^="addRow"]');
+    const isEditing = button.textContent === 'Edit';
+
+    if (isEditing) {
+      button.textContent = 'Save';
+      addRowButton.removeAttribute('disabled');
+      const cells = tableDiv.querySelectorAll('td');
+      cells.forEach(cell => cell.setAttribute('contenteditable', 'true'));
+    } else {
+      button.textContent = 'Edit';
+      addRowButton.setAttribute('disabled', 'true');
+      const cells = tableDiv.querySelectorAll('td');
+      cells.forEach(cell => cell.removeAttribute('contenteditable'));
+    }
+  }
+
+  // Function to confirm and delete a table
+  function confirmDeleteTable(tableId) {
+    if (confirm('Are you sure you want to delete this table?')) {
+      const tableDiv = document.getElementById(`table-${tableId}`);
+      tableDiv.remove();
+    }
+  }
+
+  // Function to add a new row to a table
+  function addRow(tableId) {
+    const table = document.querySelector(`#table-${tableId} table tbody`);
+    const columns = table.previousElementSibling.querySelectorAll('th').length;
+    const row = document.createElement('tr');
+    for (let i = 0; i < columns; i++) {
+      if (i === 0) {
+        row.innerHTML += '<td contenteditable="true"></td>';
+      } else if (i === columns - 1) {
+        row.innerHTML += '<td class="total-cell">0</td>';
+      } else {
+        row.innerHTML += '<td contenteditable="true" oninput="updateTotal(this)"></td>';
+      }
+    }
+    row.innerHTML += `
+      <td>
+        <button class="btn btn-sm btn-warning" onclick="editRow(this)">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteRow(this)">Delete</button>
+      </td>
+    `;
+    table.appendChild(row);
+  }
+
+  // Function to delete a row
+  function deleteRow(button) {
+    if (confirm('Are you sure you want to delete this row?')) {
+      const row = button.parentElement.parentElement;
+      row.remove();
+    }
+  }
+
+  // Function to edit a row
+  function editRow(button) {
+    const row = button.parentElement.parentElement;
+    const cells = row.querySelectorAll('td');
+    const isEditing = button.textContent === 'Edit';
+
+    if (isEditing) {
+      button.textContent = 'Save';
+      cells.forEach(cell => cell.setAttribute('contenteditable', 'true'));
+    } else {
+      button.textContent = 'Edit';
+      cells.forEach(cell => cell.removeAttribute('contenteditable'));
+    }
+  }
+
+  // Function to update the total column
+  function updateTotal(cell) {
+    const row = cell.parentElement;
+    const cells = row.querySelectorAll('td');
+    let total = 0;
+    for (let i = 1; i < cells.length - 2; i++) { // Skip the first and last columns
+      const value = parseFloat(cells[i].textContent) || 0;
+      total += value;
+    }
+    cells[cells.length - 2].textContent = total; // Update the total cell
+  }
+</script>
+
+
+</body>
+</html>
